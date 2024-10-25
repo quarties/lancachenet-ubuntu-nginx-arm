@@ -4,17 +4,17 @@ workflows:
     jobs:
       - test
       - publish_latest:
-          context: docker-hub
+          context: GITHUB
           requires:
             - test
           filters:
              branches:
                only: 
                  - master
-      - build_children:
-          context: circle-api
-          requires:
-            - publish_latest
+      # - build_children:
+      #     context: circle-api
+      #     requires:
+      #       - publish_latest
 
 version: 2
 jobs:
@@ -69,18 +69,18 @@ jobs:
       - run:
           name: "Deploy latest to docker hub"
           command: |
-            docker login -u $DOCKER_USER -p $DOCKER_PASS
+            echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USERNAME --password-stdin
             docker load -i /tmp/workspace/lancachenet-ubuntu-nginx.tar
-            docker tag lancachenet/ubuntu-nginx:goss-test lancachenet/ubuntu-nginx:latest
-            docker push lancachenet/ubuntu-nginx:latest
-  build_children:
-    docker:
-      - image: circleci/python:2-jessie
-    steps:
-      - run:
-          name: "Request API to build children"
-          command: |
-              for child in "monolithic"; do
-                 echo "Asking API to trigger build for $child"
-                 curl -X POST --header "Content-Type: application/json" -d '{"branch":"master"}' https://circleci.com/api/v1.1/project/github/lancachenet/$child/build?circle-token=${CIRCLE_API_USER_TOKEN}
-              done
+            docker tag lancachenet/ubuntu-nginx:goss-test ghcr.io/quarties/lancachenet-ubuntu-nginx-arm:latest
+            docker push ghcr.io/quarties/lancachenet-ubuntu-nginx-arm:latest
+  # build_children:
+  #   docker:
+  #     - image: circleci/python:2-jessie
+  #   steps:
+  #     - run:
+  #         name: "Request API to build children"
+  #         command: |
+  #             for child in "monolithic"; do
+  #                echo "Asking API to trigger build for $child"
+  #                curl -X POST --header "Content-Type: application/json" -d '{"branch":"master"}' https://circleci.com/api/v1.1/project/github/lancachenet/$child/build?circle-token=${CIRCLE_API_USER_TOKEN}
+  #             done
